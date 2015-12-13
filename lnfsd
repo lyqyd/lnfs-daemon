@@ -121,7 +121,7 @@ while true do
 					conn:send("fileResponse", "ok")
 					connections[conn].state = "receive"
 					connections[conn].rxpath = path
-					connections[conn].rxdata = ""
+					connections[conn].rxdata = {}
 				else
 					conn:send("done", "ok")
 				end
@@ -132,14 +132,18 @@ while true do
 			conn:send("done", "ok")
 		elseif pType == "fileData" then
 			if connections[conn].state == "receive" then
-				connections[conn].rxdata = connections[conn].rxdata..message
+				for i = 1, #message do
+					connections[conn].rxdata[#connections[conn].rxdata + 1] = message[i]
+				end
 			end
 			conn:send("done", "ok")
 		elseif pType == "fileEnd" then
 			if connections[conn].state == "receive" then
-				local handle = io.open(connections[conn].rxpath, "w")
+				local handle = io.open(connections[conn].rxpath, "wb")
 				if handle then
-					handle:write(connections[conn].rxdata)
+					for i = 1, #connections[conn].rxdata do
+						handle:write(connections[conn].rxdata[i])
+					end
 					handle:close()
 					conn:send("done", "ok")
 					connections[conn].state = ""
@@ -155,10 +159,16 @@ while true do
 			if connections[conn].state == "" then
 				local path = fs.combine(config.shares[connections[conn].share].path, message)
 				if fs.exists(path) then
-					local handle = io.open(path, "r")
+					local handle = io.open(path, "rb")
 					if handle then
 						conn:send("fileHeader", message)
-						conn:send("fileData", handle:read("*a"))
+						local data = {}
+						local num = handle:read()
+						while num do
+							data[#data + 1] = num
+							num = handle:read()
+						end
+						conn:send("fileData", data)
 						conn:send("fileEnd", "eof")
 						handle:close()
 					else
