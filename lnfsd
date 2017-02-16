@@ -61,8 +61,8 @@ local translate = {
 
 local currentDir = string.match(shell.getRunningProgram(), "^(.*)"..fs.getName(shell.getRunningProgram()).."$")
 
-config, err = configuration.load(fs.combine(currentDir, "lnfsd.conf"))
-if not config then
+local newConfig, err = configuration.load(fs.combine(currentDir, "lnfsd.conf"))
+if not newConfig then
 	if err == "not a file" then
 		configuration.save(fs.combine(currentDir, "lnfsd.conf"), config)
 		log("info", "Using default configuration file")
@@ -70,6 +70,8 @@ if not config then
 		log("error", err)
 		return
 	end
+else
+	config = newConfig
 end
 
 local connections = {}
